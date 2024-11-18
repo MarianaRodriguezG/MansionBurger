@@ -1,12 +1,9 @@
 <?php
 session_start();
-require_once '../modelos/Carrito.php';
 require_once '../datos/DAOCarrito.php';
 
 $daoCarrito = new DAOCarrito();
-
-// Obtener productos del carrito desde la base de datos.
-$productos = $daoCarrito->obtenerTodos();
+$productos = $_SESSION['carrito'] ?? []; // Cargar productos desde la sesión
 $total = 0;
 ?>
 
@@ -15,117 +12,130 @@ $total = 0;
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Carrito de Compras</title>
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 
 <body>
     <?php require("menuPrivado.php"); ?>
 
-    <section class="h-100 h-custom" style="background-color: #d2c9ff;">
-        <div class="container py-5 h-100">
-            <div class="row d-flex justify-content-center align-items-center h-100">
-                <div class="col-12">
-                    <div class="card card-registration card-registration-2" style="border-radius: 15px;">
-                        <div class="card-body p-0">
-                            <div class="row g-0">
-                                <!-- Carrito de compras -->
-                                <div class="col-lg-8">
-                                    <div class="p-5">
-                                        <div class="d-flex justify-content-between align-items-center mb-5">
-                                            <h1 class="fw-bold mb-0">Carrito de Compras</h1>
-                                            <h6 class="mb-0 text-muted"><?php echo count($productos); ?> artículos</h6>
-                                        </div>
-                                        <hr class="my-4">
+    <div class="container py-5">
+        <h2 class="text-center mb-4">Carrito de Compras</h2>
 
-                                        <?php foreach ($productos as $producto): ?>
-                                            <?php 
-                                                $subtotal = $producto->precio * $producto->cantidad;
-                                                $total += $subtotal;
-                                            ?>
-                                            <div class="row mb-4 d-flex justify-content-between align-items-center">
-                                                <div class="col-md-2 col-lg-2 col-xl-2">
-                                                    <img src="https://via.placeholder.com/100" class="img-fluid rounded-3" alt="<?php echo $producto->descripcion; ?>">
-                                                </div>
-                                                <div class="col-md-3 col-lg-3 col-xl-3">
-                                                    <h6 class="text-muted">Producto</h6>
-                                                    <h6 class="mb-0"><?php echo $producto->descripcion; ?></h6>
-                                                </div>
-                                                <div class="col-md-3 col-lg-3 col-xl-2 d-flex">
-                                                    <form method="post" action="actualizarCarrito.php" class="d-flex">
-                                                        <input type="hidden" name="id" value="<?php echo $producto->id; ?>">
-                                                        <button type="submit" name="accion" value="restar" class="btn btn-link px-2">
-                                                            <i class="fas fa-minus"></i>
-                                                        </button>
-                                                        <input type="number" name="cantidad" value="<?php echo $producto->cantidad; ?>" class="form-control form-control-sm" min="1">
-                                                        <button type="submit" name="accion" value="sumar" class="btn btn-link px-2">
-                                                            <i class="fas fa-plus"></i>
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                                <div class="col-md-3 col-lg-2 col-xl-2 offset-lg-1">
-                                                    <h6 class="mb-0">$<?php echo number_format($subtotal, 2); ?> MXN</h6>
-                                                </div>
-                                                <div class="col-md-1 col-lg-1 col-xl-1 text-end">
-                                                    <form method="post" action="eliminarCarrito.php">
-                                                        <input type="hidden" name="id" value="<?php echo $producto->id; ?>">
-                                                        <button class="btn btn-link text-muted"><i class="fas fa-times"></i></button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                            <hr class="my-4">
-                                        <?php endforeach; ?>
-
-                                        <div class="pt-5">
-                                            <h6 class="mb-0"><a href="ordenaAqui.php" class="text-body"><i class="fas fa-long-arrow-alt-left me-2"></i>Volver a la tienda</a></h6>
-                                        </div>
+        <?php if (!empty($productos)) : ?>
+            <div class="row">
+                <!-- Productos en el carrito -->
+                <div class="col-lg-8">
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <?php foreach ($productos as $id => $producto) : ?>
+                                <?php 
+                                    $subtotal = $producto['precio'] * $producto['cantidad'];
+                                    $total += $subtotal;
+                                ?>
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-md-6">
+                                        <h5><?php echo $producto['descripcion']; ?> x<?php echo $producto['cantidad']; ?></h5>
+                                        <p class="text-muted">Precio unitario: $<?php echo number_format($producto['precio'], 2); ?> MXN</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <form method="POST" action="actualizarCarrito.php" class="d-flex">
+                                            <input type="hidden" name="id" value="<?php echo $id; ?>">
+                                            <button type="submit" name="accion" value="restar" class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                            <input type="number" name="cantidad" value="<?php echo $producto['cantidad']; ?>" class="form-control form-control-sm mx-2 text-center" style="width: 60px;" readonly>
+                                            <button type="submit" name="accion" value="sumar" class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <div class="col-md-2 text-end">
+                                        <p class="fw-bold">Subtotal: $<?php echo number_format($subtotal, 2); ?> MXN</p>
+                                    </div>
+                                    <div class="col-md-1 text-end">
+                                        <form method="POST" action="eliminarCarrito.php">
+                                            <input type="hidden" name="id" value="<?php echo $id; ?>">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
+                                <hr>
+                            <?php endforeach; ?>
+                            <h4 class="text-end fw-bold">Total: $<?php echo number_format($total, 2); ?> MXN</h4>
+                        </div>
+                    </div>
+                </div>
 
-                                <!-- Resumen del pedido -->
-                                <div class="col-lg-4 bg-body-tertiary">
-                                    <div class="p-5">
-                                        <h3 class="fw-bold mb-5 mt-2 pt-1">Resumen</h3>
-                                        <hr class="my-4">
-
-                                        <div class="d-flex justify-content-between mb-4">
-                                            <h5 class="text-uppercase">Artículos <?php echo count($productos); ?></h5>
-                                            <h5>$<?php echo number_format($total, 2); ?> MXN</h5>
-                                        </div>
-
-                                        <h5 class="text-uppercase mb-3">Envío</h5>
-                                        <div class="mb-4 pb-2">
-                                            <select class="form-select">
-                                                <option value="1">Envío estándar - $50.00 MXN</option>
-                                                <option value="2">Entrega rápida - $100.00 MXN</option>
-                                            </select>
-                                        </div>
-
-                                        <h5 class="text-uppercase mb-3">Código de descuento</h5>
-                                        <div class="mb-5">
-                                            <div class="form-outline">
-                                                <input type="text" id="form3Examplea2" class="form-control form-control-lg" />
-                                                <label class="form-label" for="form3Examplea2">Ingresa tu código</label>
-                                            </div>
-                                        </div>
-
-                                        <hr class="my-4">
-                                        <div class="d-flex justify-content-between mb-5">
-                                            <h5 class="text-uppercase">Total</h5>
-                                            <h5>$<?php echo number_format($total + 50, 2); ?> MXN</h5>
-                                        </div>
-
-                                        <button type="button" class="btn btn-dark btn-block btn-lg">Finalizar compra</button>
-                                    </div>
-                                </div>
-                            </div>
+                <!-- Resumen del Pedido -->
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Resumen del Pedido</h5>
+                            <hr>
+                            <p class="d-flex justify-content-between">
+                                <span>Total de artículos:</span>
+                                <span><?php echo count($productos); ?></span>
+                            </p>
+                            <p class="d-flex justify-content-between">
+                                <span>Subtotal:</span>
+                                <span>$<?php echo number_format($total, 2); ?> MXN</span>
+                            </p>
+                            <p class="d-flex justify-content-between">
+                                <span>Envío:</span>
+                                <span>$50.00 MXN</span>
+                            </p>
+                            <hr>
+                            <p class="d-flex justify-content-between fw-bold">
+                                <span>Total:</span>
+                                <span>$<?php echo number_format($total + 50, 2); ?> MXN</span>
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
+
+            <!-- Formulario para finalizar compra -->
+            <form id="formularioCompra" method="POST" action="procesarCompra.php">
+                <h4 class="mt-4">Información de entrega</h4>
+                <div class="mb-3">
+                    <label for="nombre" class="form-label">Nombre:</label>
+                    <input type="text" id="nombre" name="nombre" class="form-control" placeholder="Tu nombre completo" required>
+                </div>
+                <div class="mb-3">
+                    <label for="direccion" class="form-label">Dirección:</label>
+                    <input type="text" id="direccion" name="direccion" class="form-control" placeholder="Calle, número, colonia" required>
+                </div>
+                <div class="mb-3">
+                    <label>Opción de entrega:</label>
+                    <div>
+                        <input type="radio" id="envioDomicilio" name="opcionEnvio" value="domicilio" checked>
+                        <label for="envioDomicilio">A domicilio</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="recogerSucursal" name="opcionEnvio" value="sucursal">
+                        <label for="recogerSucursal">Recoger en sucursal</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Finalizar Compra</button>
+            </form>
+        <?php else : ?>
+            <div class="alert alert-warning text-center">
+                <p>El carrito está vacío. <a href="ordenaAqui.php" class="alert-link">Volver a la tienda</a></p>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Font Awesome -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
 </body>
 
 </html>

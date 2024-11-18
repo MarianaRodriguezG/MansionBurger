@@ -1,67 +1,37 @@
 <?php
-require_once 'conexion.php'; 
-require_once '../modelos/Carrito.php'; 
+require_once 'conexion.php';
+require_once '../modelos/Carrito.php';
 
 class DAOCarrito
 {
-    private $conexion; 
+    private $conexion;
 
-    private function conectar(){
-        try {
-            $this->conexion = Conexion::conectar(); 
-        } catch(Exception $e) {
-            die($e->getMessage());
-        }
-    }
-
-    public function autenticar($correo, $password)
+    private function conectar()
     {
-        try { 
-            $this->conectar();
-            $obj = null; 
-            
-            $sentenciaSQL = $this->conexion->prepare("SELECT id, descripcion, precio 
-            FROM carrito WHERE correo = ? AND contrasenia = sha224(?)");
-            $sentenciaSQL->execute([$correo, $password]);
-
-            $fila = $sentenciaSQL->fetch(PDO::FETCH_OBJ);
-            if($fila) {
-                $obj = new Carrito();
-                $obj->id = $fila->id;
-                $obj->descripcion = $fila->descripcion;
-                $obj->precio = $fila->precio;
-            }
-            return $obj;
-        } catch(Exception $e) {
-            var_dump($e);
-            return null;
-        } finally {
-            Conexion::desconectar();
-        }
+        $this->conexion = Conexion::conectar();
     }
 
     public function obtenerTodos()
     {
         try {
             $this->conectar();
-            $lista = array();
-            
-            $sentenciaSQL = $this->conexion->prepare("SELECT id, descripcion, precio FROM carrito");
-            $sentenciaSQL->execute();
-            $resultado = $sentenciaSQL->fetchAll(PDO::FETCH_OBJ);
+            $sql = "SELECT id, descripcion, precio, cantidad FROM carrito";
+            $stmt = $this->conexion->prepare($sql);
+            $stmt->execute();
+            $result = $stmt->fetchAll(PDO::FETCH_OBJ);
 
-            foreach($resultado as $fila) {
-                $obj = new Carrito();
-                $obj->id = $fila->id;
-                $obj->descripcion = $fila->descripcion;
-                $obj->precio = $fila->precio;
-                $lista[] = $obj;
+            $productos = [];
+            foreach ($result as $fila) {
+                $producto = new Carrito();
+                $producto->id = $fila->id;
+                $producto->descripcion = $fila->descripcion;
+                $producto->precio = $fila->precio;
+                $producto->cantidad = $fila->cantidad;
+                $productos[] = $producto;
             }
-            
-            return $lista;
-        } catch(PDOException $e) {
-            var_dump($e);
-            return null;
+            return $productos;
+        } catch (PDOException $e) {
+            return [];
         } finally {
             Conexion::desconectar();
         }
@@ -69,61 +39,36 @@ class DAOCarrito
 
     public function obtenerUno($id)
     {
-        try { 
+        try {
             $this->conectar();
-            $obj = null; 
-            
-            $sentenciaSQL = $this->conexion->prepare("SELECT id, descripcion, precio FROM carrito WHERE id = ?"); 
-            $sentenciaSQL->execute([$id]);
+            $sql = "SELECT id, descripcion, precio, cantidad FROM carrito WHERE id = ?";
+            $stmt = $this->conexion->prepare($sql);
+            $stmt->execute([$id]);
+            $fila = $stmt->fetch(PDO::FETCH_OBJ);
 
-            $fila = $sentenciaSQL->fetch(PDO::FETCH_OBJ);
-            if($fila) {
-                $obj = new Carrito();
-                $obj->id = $fila->id;
-                $obj->descripcion = $fila->descripcion;
-                $obj->precio = $fila->precio;
+            if ($fila) {
+                $producto = new Carrito();
+                $producto->id = $fila->id;
+                $producto->descripcion = $fila->descripcion;
+                $producto->precio = $fila->precio;
+                $producto->cantidad = $fila->cantidad;
+                return $producto;
             }
-           
-            return $obj;
-        } catch(Exception $e) {
+            return null;
+        } catch (PDOException $e) {
             return null;
         } finally {
             Conexion::desconectar();
         }
     }
 
-    public function eliminar($id)
+    public function agregar(Carrito $producto)
     {
         try {
             $this->conectar();
-            $sentenciaSQL = $this->conexion->prepare("DELETE FROM carrito WHERE id = ?");			          
-            $resultado = $sentenciaSQL->execute([$id]);
-            return $resultado;
-        } catch (PDOException $e) {
-            return false;	
-        } finally {
-            Conexion::desconectar();
-        }
-    }
-
-    public function editar(Carrito $obj)
-    {
-        try {
-            $sql = "UPDATE carrito
-                    SET
-                    descripcion = ?,
-                    precio = ?,
-                    cantidad = ?
-                    WHERE id = ?;";
-    
-            $this->conectar();
-            $sentenciaSQL = $this->conexion->prepare($sql);
-            $sentenciaSQL->execute([
-                $obj->descripcion,
-                $obj->precio,
-                $obj->cantidad,
-                $obj->id
-            ]);
+            $sql = "INSERT INTO carrito (id, descripcion, precio, cantidad) VALUES (?, ?, ?, ?)";
+            $stmt = $this->conexion->prepare($sql);
+            $stmt->execute([$producto->id, $producto->descripcion, $producto->precio, $producto->cantidad]);
             return true;
         } catch (PDOException $e) {
             return false;
@@ -131,30 +76,50 @@ class DAOCarrito
             Conexion::desconectar();
         }
     }
-    
 
-    public function agregar(Carrito $obj)
+    public function editar(Carrito $producto)
     {
-        $clave = 0;
         try {
-            $sql = "INSERT INTO carrito
-                (descripcion, precio)
-                VALUES
-                (?, ?);";
-                
             $this->conectar();
-            $this->conexion->prepare($sql)->execute([
-                $obj->descripcion,
-                $obj->precio
-            ]);
-                 
-            $clave = $this->conexion->lastInsertId();
-            return $clave;
-        } catch (Exception $e) {
-            return $clave;
+            $sql = "UPDATE carrito SET cantidad = ? WHERE id = ?";
+            $stmt = $this->conexion->prepare($sql);
+            $stmt->execute([$producto->cantidad, $producto->id]);
+            return true;
+        } catch (PDOException $e) {
+            return false;
         } finally {
             Conexion::desconectar();
         }
     }
+
+    public function vaciarCarrito()
+    {
+        try {
+            $this->conectar();
+            $sql = "DELETE FROM carrito";
+            $this->conexion->exec($sql);
+            return true;
+        } catch (PDOException $e) {
+            return false;
+        } finally {
+            Conexion::desconectar();
+        }
+    }
+    public function eliminar($id)
+{
+    try {
+        $this->conectar();
+        $sql = "DELETE FROM carrito WHERE id = ?";
+        $stmt = $this->conexion->prepare($sql);
+        $stmt->execute([$id]);
+        return true;
+    } catch (PDOException $e) {
+        return false;
+    } finally {
+        Conexion::desconectar();
+    }
 }
+
+}
+
 ?>
