@@ -112,14 +112,16 @@ class DAOCarrito
             $sql = "UPDATE carrito
                     SET
                     descripcion = ?,
-                    precio = ?
+                    precio = ?,
+                    cantidad = ?
                     WHERE id = ?;";
-
+    
             $this->conectar();
             $sentenciaSQL = $this->conexion->prepare($sql);
             $sentenciaSQL->execute([
                 $obj->descripcion,
                 $obj->precio,
+                $obj->cantidad,
                 $obj->id
             ]);
             return true;
@@ -129,6 +131,7 @@ class DAOCarrito
             Conexion::desconectar();
         }
     }
+    
 
     public function agregar(Carrito $obj)
     {

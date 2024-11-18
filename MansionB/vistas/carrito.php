@@ -1,87 +1,124 @@
+<?php
+session_start();
+require_once '../modelos/Carrito.php';
+require_once '../datos/DAOCarrito.php';
+
+$daoCarrito = new DAOCarrito();
+
+// Obtener productos del carrito desde la base de datos.
+$productos = $daoCarrito->obtenerTodos();
+$total = 0;
+?>
+
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <title>Carrito de Compras</title>
-    <script src="js/scriptAgregar.js" defer></script>
-    <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
-    <!-- Font Awesome icons (free version)-->
-    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
-    <!-- Google fonts-->
-    <link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet" />
-    <!-- Core theme CSS (includes Bootstrap)-->
-    <style>
-        .error-message {
-            color: red;
-            font-size: 0.9em;
-        }
-    </style>
-    <link href="css/estilosInicioPres.css" rel="stylesheet" />
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/5787/5787016.png" type="image/x-icon">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 </head>
 
-<body oncontextmenu="return false;">
-    <?php require("menuPrivado.php");
-    require_once '../modelos/Carrito.php'; ?>
+<body>
+    <?php require("menuPrivado.php"); ?>
 
-    <section class="vh-100" style="background-color: #508bfc;">
+    <section class="h-100 h-custom" style="background-color: #d2c9ff;">
         <div class="container py-5 h-100">
             <div class="row d-flex justify-content-center align-items-center h-100">
-                <div class="col-12 col-md-8 col-lg-6 col-xl-5">
-                    <div class="card shadow-2-strong" style="border-radius: 1rem;">
-                        <div class="card-body p-5 text-center">
-                            <h3 class="mb-2">Carrito de compras</h3>
-                            <div class="container-md">
+                <div class="col-12">
+                    <div class="card card-registration card-registration-2" style="border-radius: 15px;">
+                        <div class="card-body p-0">
+                            <div class="row g-0">
+                                <!-- Carrito de compras -->
+                                <div class="col-lg-8">
+                                    <div class="p-5">
+                                        <div class="d-flex justify-content-between align-items-center mb-5">
+                                            <h1 class="fw-bold mb-0">Carrito de Compras</h1>
+                                            <h6 class="mb-0 text-muted"><?php echo count($productos); ?> artículos</h6>
+                                        </div>
+                                        <hr class="my-4">
 
-                                <div id="carrito">
+                                        <?php foreach ($productos as $producto): ?>
+                                            <?php 
+                                                $subtotal = $producto->precio * $producto->cantidad;
+                                                $total += $subtotal;
+                                            ?>
+                                            <div class="row mb-4 d-flex justify-content-between align-items-center">
+                                                <div class="col-md-2 col-lg-2 col-xl-2">
+                                                    <img src="https://via.placeholder.com/100" class="img-fluid rounded-3" alt="<?php echo $producto->descripcion; ?>">
+                                                </div>
+                                                <div class="col-md-3 col-lg-3 col-xl-3">
+                                                    <h6 class="text-muted">Producto</h6>
+                                                    <h6 class="mb-0"><?php echo $producto->descripcion; ?></h6>
+                                                </div>
+                                                <div class="col-md-3 col-lg-3 col-xl-2 d-flex">
+                                                    <form method="post" action="actualizarCarrito.php" class="d-flex">
+                                                        <input type="hidden" name="id" value="<?php echo $producto->id; ?>">
+                                                        <button type="submit" name="accion" value="restar" class="btn btn-link px-2">
+                                                            <i class="fas fa-minus"></i>
+                                                        </button>
+                                                        <input type="number" name="cantidad" value="<?php echo $producto->cantidad; ?>" class="form-control form-control-sm" min="1">
+                                                        <button type="submit" name="accion" value="sumar" class="btn btn-link px-2">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                                <div class="col-md-3 col-lg-2 col-xl-2 offset-lg-1">
+                                                    <h6 class="mb-0">$<?php echo number_format($subtotal, 2); ?> MXN</h6>
+                                                </div>
+                                                <div class="col-md-1 col-lg-1 col-xl-1 text-end">
+                                                    <form method="post" action="eliminarCarrito.php">
+                                                        <input type="hidden" name="id" value="<?php echo $producto->id; ?>">
+                                                        <button class="btn btn-link text-muted"><i class="fas fa-times"></i></button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                            <hr class="my-4">
+                                        <?php endforeach; ?>
 
-                                <?php
-                                 if(!isset($_SESSION ['carrito']))
-                                 $_SESSION ['carrito']=[];
-                                foreach ($_SESSION ['carrito'] as $key => $value) {
-                               
-                                       echo "<div>".$value['descripcion']."</div>
-                                        <div>".$value['precio']."</div>
-                                        <div>".$value['cantidad']."</div>";
-
-                                }
-
-                                echo "Gracias por su paciencia, tiempo y pasión por enseñarnos... Lo apreciamos demasiado."
-                                ?>
-
+                                        <div class="pt-5">
+                                            <h6 class="mb-0"><a href="ordenaAqui.php" class="text-body"><i class="fas fa-long-arrow-alt-left me-2"></i>Volver a la tienda</a></h6>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <form id="formularioCompra" method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-                                    <p>
-                                    <h3>Información de entrega</h3>
-                                    </p>
+                                <!-- Resumen del pedido -->
+                                <div class="col-lg-4 bg-body-tertiary">
+                                    <div class="p-5">
+                                        <h3 class="fw-bold mb-5 mt-2 pt-1">Resumen</h3>
+                                        <hr class="my-4">
 
-                                    <p><label for="opcionEnvio">Opción de entrega:</label></p>
-                                    <div>
-                                        <p><input type="radio" id="envioDomicilio" name="opcionEnvio" value="domicilio" checked>
-                                            <label for="envioDomicilio">A domicilio</label>
-                                        </p>
-                                        <p><input type="radio" id="recogerSucursal" name="opcionEnvio" value="sucursal">
-                                            <label for="recogerSucursal">Recoger en sucursal</label>
-                                        </p>
+                                        <div class="d-flex justify-content-between mb-4">
+                                            <h5 class="text-uppercase">Artículos <?php echo count($productos); ?></h5>
+                                            <h5>$<?php echo number_format($total, 2); ?> MXN</h5>
+                                        </div>
+
+                                        <h5 class="text-uppercase mb-3">Envío</h5>
+                                        <div class="mb-4 pb-2">
+                                            <select class="form-select">
+                                                <option value="1">Envío estándar - $50.00 MXN</option>
+                                                <option value="2">Entrega rápida - $100.00 MXN</option>
+                                            </select>
+                                        </div>
+
+                                        <h5 class="text-uppercase mb-3">Código de descuento</h5>
+                                        <div class="mb-5">
+                                            <div class="form-outline">
+                                                <input type="text" id="form3Examplea2" class="form-control form-control-lg" />
+                                                <label class="form-label" for="form3Examplea2">Ingresa tu código</label>
+                                            </div>
+                                        </div>
+
+                                        <hr class="my-4">
+                                        <div class="d-flex justify-content-between mb-5">
+                                            <h5 class="text-uppercase">Total</h5>
+                                            <h5>$<?php echo number_format($total + 50, 2); ?> MXN</h5>
+                                        </div>
+
+                                        <button type="button" class="btn btn-dark btn-block btn-lg">Finalizar compra</button>
                                     </div>
-
-                                    <label for="nombre">Nombre:</label>
-                                    <p><input type="text" id="nombre" name="nombre" placeholder="Nombre apellido" required></p>
-                                    <div id="nombre-error" class="error-message"></div>
-
-                                    <div id="direccionDiv">
-                                        <label for="direccion">Dirección:</label>
-                                        <p><input type="text" id="direccion" name="direccion" placeholder="Calle, 1, Colonia" require></p>
-                                        <div id="direccion-error" class="error-message"></div>
-                                    </div>
-
-                                    <p><button class="btn btn-primary" type="submit">Finalizar Compra</button></p>
-                                </form>
-                                <p><a class="btn btn-secondary" href="ordenaAqui.php">Volver a la tienda</a></p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -89,17 +126,6 @@
             </div>
         </div>
     </section>
-
-    <footer class="footer bg-black small text-center text-white-50">
-        <div class="container px-4 px-lg-5">Copyright &copy; DEVCO 2024</div>
-    </footer>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/scripts.js"></script>
-    <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js" integrity="sha512-GWzVrcGlo0TxTRvz9ttioyYJ+Wwk9Ck0G81D+eO63BaqHaJ3YZX9wuqjwgfcV/MrB2PhaVX9DkYVhbFpStnqpQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
-    <script src="js/block.js"></script>
 </body>
 
 </html>
